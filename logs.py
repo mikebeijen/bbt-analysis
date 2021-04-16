@@ -3,6 +3,7 @@ from urllib.parse import unquote
 import re
 import datetime
 
+
 def importLogs(file):
     """
     Import the raw JSON logs as a dictionary.
@@ -47,7 +48,6 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
     - [avgRankVisitedResults] average rank of search results visited
     - [serpsVisited] number of SERPs visited
     - [dwellTimePerMinute] dwell time on SERPs per minute (H)
-    - [submissionTime] time taken to complete submission (either finished or time up)
 
     :param submission: prolific ID of the participant
     :param submissionTime: Time used to complete submission
@@ -73,12 +73,13 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
     submissionMetrics['avgRankVisitedResults'] = sum(rank for rank in ranks) / len(ranks)
 
     # Calculate dwell time
+
     pagefocusIntervals = extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs)
     submissionMetrics['dwellTimePerMinute'] = sum((endTime - startTime) for (startTime, endTime) in pagefocusIntervals) / 1000 / (submissionTime / 60)
-    submissionMetrics['submissionTime'] = submissionTime
 
     print(submissionMetrics)
     return submissionMetrics
+
 
 def filterLogs(submissionLogs):
     """
@@ -187,21 +188,35 @@ def extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs):
 
     return focusIntervals
 
-def writeToCSV(file, submissionMetrics):
-    file = open(file, "w")
-    file.write("prolificId,queryRate,avgQueryLengthWords,avgQueryLengthChars,serpsVisited,noOfResultsClicked,deepestRankVisitedResults,avgRankVisitedResults,serpsVisited,dwellTimePerMinute,submissionTime\n")
+
+def writeToCSV(out_file, submissionMetrics):
+    file = open(out_file, "w")
+    file.write("prolificId,queryRate,avgQueryLengthWords,avgQueryLengthChars,serpsVisited,noOfResultsClicked,deepestRankVisitedResults,avgRankVisitedResults,dwellTimePerMinute\n")
     for s in submissionMetrics:
         file.write(s['prolificId'] + "," + str(s['queryRate']) + "," + str(s['avgQueryLengthWords']) + "," + str(s['avgQueryLengthChars']) + "," + str(s['serpsVisited']) + "," +
-                   str(s['noOfResultsClicked']) + "," + str(s['deepestRankVisitedResults']) + "," + str(s['avgRankVisitedResults']) + "," + str(s['dwellTimePerMinute']) + "," + str(s['submissionTime']) + "\n")
+                   str(s['noOfResultsClicked']) + "," + str(s['deepestRankVisitedResults']) + "," + str(s['avgRankVisitedResults']) + "," + str(s['dwellTimePerMinute']) + "\n")
     file.close()
 
-# TODO: Add time taken for submission from other source! Using stub of 300 s now.
+
+def getSubmissionTimes(file):
+    submissionTimes = {}
+    with open(file) as submissions_file:
+        next(submissions_file)
+        for s in submissions_file:
+            regexRes = re.search("^([a-z0-9]{24}),[-+]?[0-9]+,[0-9]+,([0-9]+),[0-9]+$", s)
+            if regexRes:
+                submissionTimes[regexRes.group(1)] = int(regexRes.group(2))
+
+    return(submissionTimes)
+
+
 if __name__ == '__main__':
-    logs = importLogs("/home/mike/git/bbt-analysis/data/testlogs.log")
+    logs = importLogs("/home/mike/git/bbt-analysis/data/in/testlogs.log")
     logsPerSubmission = groupLogsPerSubmission(logs)
+    submissionTimes = getSubmissionTimes("/home/mike/git/bbt-analysis/data/out/submissionTimesAndNoOfArgs.csv")
     submissionMetrics = []
     for (submission, submissionLogs) in logsPerSubmission.items():
-        submissionMetrics.append(calculateMetricsPerSubmission(submission, 300, submissionLogs))
-    writeToCSV("/home/mike/git/bbt-analysis/data/submissionMetrics.csv", submissionMetrics)
+        submissionMetrics.append(calculateMetricsPerSubmission(submission, submissionTimes[submission], submissionLogs))
+    writeToCSV("/home/mike/git/bbt-analysis/data/out/submissionMetrics.csv", submissionMetrics)
 
 

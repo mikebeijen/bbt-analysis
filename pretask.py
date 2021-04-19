@@ -14,7 +14,6 @@ def importPretasks(file, outfile):
             csv_file.write("prolificID,gender,age,education,wse,priorknowl,interest,taskdef\n")
             for line in pretasks_file:
                 pretask = json.loads(line)
-                print(line)
                 if not pretask['attn'] == 1:
                     print("[WARNING] Participant " + pretask['_id'] + " failed the attention check!")
                 csv_file.write(pretask['_id'] + "," + str(pretask['gender']) + "," + str(pretask['age']) + "," + str(pretask['education']) + "," + str(pretask['wse']) + "," + str(pretask['priorknowl']) + "," + str(pretask['interest']) + "," + str(pretask['taskdef']) + "\n")

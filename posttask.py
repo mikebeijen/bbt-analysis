@@ -56,7 +56,7 @@ def writeToCSV(out_file, processedSubmissions):
     file.write("prolificID,ati,uesRws,uesAes,uesPus,uesFas,uesTotal\n")
     for s in processedSubmissions:
         file.write(s['prolificID'] + "," + str(s['ati']) + "," + str(s['uesRws']) + "," + str(s['uesAes']) + "," + str(s['uesPus']) + "," + str(s['uesFas']) + "," + str(s['uesTotal']) + "\n")
-
+    file.close()
 
 if __name__ == '__main__':
     # Load raw posttask questionnaires from file

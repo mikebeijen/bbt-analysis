@@ -30,6 +30,7 @@ def groupLogsPerSubmission(logs):
             submissionsGrouped.update({prolificid: [log]})
         if prolificid in submissionsGrouped:
             submissionsGrouped[prolificid].append(log)
+    submissionsGrouped.pop(None, None)
     return submissionsGrouped
 
 
@@ -224,7 +225,8 @@ if __name__ == '__main__':
     submissionTimes = getSubmissionTimes("/home/mike/git/bbt-analysis/data/out/submissionTimesAndNoOfArgs.csv")
     submissionMetrics = []
     for (submission, submissionLogs) in logsPerSubmission.items():
-        submissionMetrics.append(calculateMetricsPerSubmission(submission, submissionTimes[submission], submissionLogs))
+        if submission in submissionTimes:
+            submissionMetrics.append(calculateMetricsPerSubmission(submission, submissionTimes[submission], submissionLogs))
     writeToCSV("/home/mike/git/bbt-analysis/data/out/submissionMetrics.csv", submissionMetrics)
 
 

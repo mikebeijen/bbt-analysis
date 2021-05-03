@@ -26,9 +26,9 @@ def groupLogsPerSubmission(logs):
     submissionsGrouped = {}
     for log in logs:
         prolificid = log['applicationSpecificData']['prolificID']
-        if prolificid not in submissionsGrouped:
+        if (prolificid not in submissionsGrouped) and (log['eventType'] == "statusEvent" and log['eventDetails']['type'] == "started"):
             submissionsGrouped.update({prolificid: [log]})
-        else:
+        if prolificid in submissionsGrouped:
             submissionsGrouped[prolificid].append(log)
     return submissionsGrouped
 
@@ -40,6 +40,7 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
     certain metrics that are calculated per minute.
 
     Metrics calculated:
+    - [queriesIssued] number of queries issued in total
     - [queryRate] number of queries issued per minute (H)
     - [avgQueryLengthWords] average length of queries issued in words (H)
     - [avgQueryLengthChars] average length of queries issued in characters
@@ -61,19 +62,22 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
 
     # Calculate query/serp metrics
     queries, serps = processQueryserpLogs(queryserpLogs)
+    print(queries)
+    print(serps)
+    submissionMetrics['queriesIssued'] = len(queries)
     submissionMetrics['queryRate'] = len(queries) / (submissionTime / 60)
     submissionMetrics['avgQueryLengthWords'] = sum(len(query.split()) for query in queries) / len(queries)
     submissionMetrics['avgQueryLengthChars'] = sum(len(query) for query in queries) / len(queries)
     submissionMetrics['serpsVisited'] = len(serps)
 
     # Calulate result click metrics
+    # Set the last two to 0 if no results were clicked
     ranks = extractResultRanksLogs(clickLogs)
     submissionMetrics['noOfResultsClicked'] = len(ranks)
-    submissionMetrics['deepestRankVisitedResults'] = max(ranks)
-    submissionMetrics['avgRankVisitedResults'] = sum(rank for rank in ranks) / len(ranks)
+    submissionMetrics['deepestRankVisitedResults'] = 0 if len(ranks) == 0 else max(ranks)
+    submissionMetrics['avgRankVisitedResults'] = 0 if len(ranks) == 0 else sum(rank for rank in ranks) / len(ranks)
 
     # Calculate dwell time
-
     pagefocusIntervals = extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs)
     submissionMetrics['dwellTimePerMinute'] = sum((endTime - startTime) for (startTime, endTime) in pagefocusIntervals) / 1000 / (submissionTime / 60)
 
@@ -136,7 +140,11 @@ def processQueryserpLogs(queryserpLogs):
                 # Case where query differed, thus new query issued
                 serps.append(1)
                 queries.append(unquote(unquote(queryserp_newURL.group(2))))
-        else:
+        elif not queryserp_newURL:
+            # Case where no new query was issued. Can happen on refresh or return to main landing page.
+            # Pass since its no serp visit or query issued
+            pass
+        elif not queryserp_previousURL and queryserp_newURL:
             # Case without previous query, thus new query issued (from main)
             serps.append(1)
             queries.append(unquote(unquote(queryserp_newURL.group(2))))
@@ -191,9 +199,9 @@ def extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs):
 
 def writeToCSV(out_file, submissionMetrics):
     file = open(out_file, "w")
-    file.write("prolificId,queryRate,avgQueryLengthWords,avgQueryLengthChars,serpsVisited,noOfResultsClicked,deepestRankVisitedResults,avgRankVisitedResults,dwellTimePerMinute\n")
+    file.write("prolificId,queriesIssued,queryRate,avgQueryLengthWords,avgQueryLengthChars,serpsVisited,noOfResultsClicked,deepestRankVisitedResults,avgRankVisitedResults,dwellTimePerMinute\n")
     for s in submissionMetrics:
-        file.write(s['prolificId'] + "," + str(s['queryRate']) + "," + str(s['avgQueryLengthWords']) + "," + str(s['avgQueryLengthChars']) + "," + str(s['serpsVisited']) + "," +
+        file.write(s['prolificId'] + "," + str(s['queriesIssued']) + "," + str(s['queryRate']) + "," + str(s['avgQueryLengthWords']) + "," + str(s['avgQueryLengthChars']) + "," + str(s['serpsVisited']) + "," +
                    str(s['noOfResultsClicked']) + "," + str(s['deepestRankVisitedResults']) + "," + str(s['avgRankVisitedResults']) + "," + str(s['dwellTimePerMinute']) + "\n")
     file.close()
 
@@ -207,11 +215,11 @@ def getSubmissionTimes(file):
             if regexRes:
                 submissionTimes[regexRes.group(1)] = int(regexRes.group(2))
 
-    return(submissionTimes)
+    return submissionTimes
 
 
 if __name__ == '__main__':
-    logs = importLogs("/home/mike/git/bbt-analysis/data/in/testlogs.log")
+    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-list.log")
     logsPerSubmission = groupLogsPerSubmission(logs)
     submissionTimes = getSubmissionTimes("/home/mike/git/bbt-analysis/data/out/submissionTimesAndNoOfArgs.csv")
     submissionMetrics = []

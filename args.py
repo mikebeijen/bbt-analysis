@@ -57,7 +57,7 @@ def writeArgumentsIndividuallyToCSV(file, argsSubmissions):
 
 
 if __name__ == '__main__':
-    argsSubmissions = importArgs("/home/mike/git/bbt-analysis/data/in/arguments.json")
+    argsSubmissions = importArgs("/home/mike/git/bbt-analysis/data/in/args.json")
     # Calculate time used and write the time statistics to a CSV file for data analysis
     writeTimeStatsAndNoOfArgsToCSV("/home/mike/git/bbt-analysis/data/out/submissionTimesAndNoOfArgs.csv", argsSubmissions)
     # Write arguments to a CSV file with one line per argument for task performance judgements

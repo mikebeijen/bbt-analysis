@@ -212,7 +212,7 @@ def getSubmissionTimes(file):
     with open(file) as submissions_file:
         next(submissions_file)
         for s in submissions_file:
-            regexRes = re.search("^([a-z0-9]{24}),[-+]?[0-9]+,[0-9]+,([0-9]+),[0-9]+$", s)
+            regexRes = re.search("^([a-z0-9]{24}),([0-9]+),[0-9]+,[0-9]+$", s)
             if regexRes:
                 submissionTimes[regexRes.group(1)] = int(regexRes.group(2))
 
@@ -220,7 +220,7 @@ def getSubmissionTimes(file):
 
 
 if __name__ == '__main__':
-    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-list.log")
+    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-ilsp.log")
     logsPerSubmission = groupLogsPerSubmission(logs)
     submissionTimes = getSubmissionTimes("/home/mike/git/bbt-analysis/data/out/submissionTimesAndNoOfArgs.csv")
     submissionMetrics = []

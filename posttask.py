@@ -36,6 +36,9 @@ def processSubmission(posttaskSubmission):
     posttaskMetrics['uesFas'] = sum([posttaskSubmission['fas' + str(i)] for i in range(1, 4)]) / 3
     posttaskMetrics['uesTotal'] = (posttaskMetrics['uesRws'] + posttaskMetrics['uesAes'] + posttaskMetrics['uesPus'] + posttaskMetrics['uesFas']) / 4
 
+    # Add question asking whether participants felt they had enough time
+    posttaskMetrics['timeconstraint'] = posttaskSubmission['timeconstraint']
+
     # Print message if attention check was failed
     if not posttaskSubmission['attn'] == 2:
         print("[WARNING] Participant " + posttaskSubmission['_id'] + " failed the attention check!")
@@ -53,9 +56,9 @@ def writeToCSV(out_file, processedSubmissions):
     :return: None
     """
     file = open(out_file, "w")
-    file.write("prolificID,ati,uesRws,uesAes,uesPus,uesFas,uesTotal\n")
+    file.write("prolificID,ati,uesRws,uesAes,uesPus,uesFas,uesTotal,timeconstraint\n")
     for s in processedSubmissions:
-        file.write(s['prolificID'] + "," + str(s['ati']) + "," + str(s['uesRws']) + "," + str(s['uesAes']) + "," + str(s['uesPus']) + "," + str(s['uesFas']) + "," + str(s['uesTotal']) + "\n")
+        file.write(s['prolificID'] + "," + str(s['ati']) + "," + str(s['uesRws']) + "," + str(s['uesAes']) + "," + str(s['uesPus']) + "," + str(s['uesFas']) + "," + str(s['uesTotal']) + "," + str(s['timeconstraint']) + "\n")
     file.close()
 
 if __name__ == '__main__':

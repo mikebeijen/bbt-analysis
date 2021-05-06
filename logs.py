@@ -28,7 +28,7 @@ def groupLogsPerSubmission(logs):
         prolificid = log['applicationSpecificData']['prolificID']
         if (prolificid not in submissionsGrouped) and (log['eventType'] == "statusEvent" and log['eventDetails']['type'] == "started"):
             submissionsGrouped.update({prolificid: [log]})
-        if prolificid in submissionsGrouped:
+        elif prolificid in submissionsGrouped:
             submissionsGrouped[prolificid].append(log)
     submissionsGrouped.pop(None, None)
     return submissionsGrouped
@@ -67,8 +67,8 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
     print(serps)
     submissionMetrics['queriesIssued'] = len(queries)
     submissionMetrics['queryRate'] = len(queries) / (submissionTime / 60)
-    submissionMetrics['avgQueryLengthWords'] = sum(len(query.split()) for query in queries) / len(queries)
-    submissionMetrics['avgQueryLengthChars'] = sum(len(query) for query in queries) / len(queries)
+    submissionMetrics['avgQueryLengthWords'] = 0 if len(queries) == 0 else sum(len(query.split()) for query in queries) / len(queries)
+    submissionMetrics['avgQueryLengthChars'] = 0 if len(queries) == 0 else sum(len(query) for query in queries) / len(queries)
     submissionMetrics['serpsVisited'] = len(serps)
 
     # Calulate result click metrics
@@ -104,7 +104,8 @@ def filterLogs(submissionLogs):
         if (submissionLog['eventDetails']['type'] == "URLChange"):
             queryserpLogs.append(submissionLog)
         elif (submissionLog['eventDetails']['type'] == 'click' or
-              submissionLog['eventDetails']['type'] == 'auxclick'):
+              submissionLog['eventDetails']['type'] == 'auxclick' or
+              submissionLog['eventDetails']['type'] == 'mouseClick'):
             clickLogs.append(submissionLog)
         elif (submissionLog['eventDetails']['type'] == "viewportFocusChange"):
             pagefocusLogs.append(submissionLog)
@@ -220,7 +221,7 @@ def getSubmissionTimes(file):
 
 
 if __name__ == '__main__':
-    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-ilsp.log")
+    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-list.log")
     logsPerSubmission = groupLogsPerSubmission(logs)
     submissionTimes = getSubmissionTimes("/home/mike/git/bbt-analysis/data/out/submissionTimesAndNoOfArgs.csv")
     submissionMetrics = []

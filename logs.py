@@ -56,7 +56,7 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
     :param submissionLogs: the logs of one participant
     :return:
     """
-    pagefocusLogs, queryserpLogs, clickLogs, startLogs, stopLogs = filterLogs(submissionLogs)
+    pagefocusLogs, queryserpLogs, clickLogs, startLogs, stopLogs, resizingLogs = filterLogs(submissionLogs)
     submissionMetrics = {"prolificId": submission}
 
     print("***********************************************")
@@ -82,7 +82,13 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
     pagefocusIntervals = extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs)
     submissionMetrics['dwellTimePerMinute'] = sum((endTime - startTime) for (startTime, endTime) in pagefocusIntervals) / 1000 / (submissionTime / 60)
 
+    # Collect all viewport size
+    viewportSizes = extractViewportResizeEvents(resizingLogs)
+    # Prepend initial size
+    viewportSizes.insert(0, str(startLogs[0]['eventDetails']['viewportResolution']['width']) + "x" + str(startLogs[0]['eventDetails']['viewportResolution']['height']))
+
     print(submissionMetrics)
+    print(viewportSizes)
     return submissionMetrics
 
 
@@ -99,6 +105,7 @@ def filterLogs(submissionLogs):
     clickLogs = []
     startLogs = []
     stopLogs = []
+    resizingLogs = []
 
     for submissionLog in submissionLogs:
         if (submissionLog['eventDetails']['type'] == "URLChange"):
@@ -114,8 +121,10 @@ def filterLogs(submissionLogs):
             startLogs.append(submissionLog)
         elif (submissionLog['eventDetails']['type'] == "stopped"):
             stopLogs.append(submissionLog)
+        elif (submissionLog['eventDetails']['type'] == "viewportResize"):
+            resizingLogs.append(submissionLog)
 
-    return pagefocusLogs, queryserpLogs, clickLogs, startLogs, stopLogs
+    return pagefocusLogs, queryserpLogs, clickLogs, startLogs, stopLogs, resizingLogs
 
 
 def processQueryserpLogs(queryserpLogs):
@@ -161,6 +170,8 @@ def extractResultRanksLogs(clickLogs):
     :param clickLogs: the clicklogs to extract the ranks from
     :return: the extracted ranks in a list
     """
+    for log in clickLogs:
+        print("SERP: " + log['metadata'][2]['value'] + " | " + log['metadata'][1]['value'])
     return [int(log['metadata'][0]['value']) for log in clickLogs]
 
 
@@ -199,6 +210,21 @@ def extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs):
     return focusIntervals
 
 
+def extractViewportResizeEvents(resizingLogs):
+    """
+    Extract the viewport sizes after the viewport has been resized.
+
+    :param resizingLogs: Logs containing the resizing events.
+    :return: viewport sizes
+    """
+    viewportSizes = []
+    for log in resizingLogs:
+        viewportSizes.append(log['eventDetails']['stringRepr'])
+
+    return viewportSizes
+
+
+
 def writeToCSV(out_file, submissionMetrics):
     file = open(out_file, "w")
     file.write("prolificId,queriesIssued,queryRate,avgQueryLengthWords,avgQueryLengthChars,serpsVisited,noOfResultsClicked,deepestRankVisitedResults,avgRankVisitedResults,dwellTimePerMinute\n")
@@ -221,7 +247,7 @@ def getSubmissionTimes(file):
 
 
 if __name__ == '__main__':
-    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-list.log")
+    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-sa.log")
     logsPerSubmission = groupLogsPerSubmission(logs)
     submissionTimes = getSubmissionTimes("/home/mike/git/bbt-analysis/data/out/submissionTimesAndNoOfArgs.csv")
     submissionMetrics = []

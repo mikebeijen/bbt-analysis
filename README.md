@@ -27,3 +27,22 @@ Should be run for every set of logs.
 - JSON export of the `bbtPretask` collection from MongoDB.
 #### Outputs
 - CSV file with following data: gender, age, education, wse, prior knowledge, prior interest,task definition
+
+## File: ```posttask.py```
+#### Inputs
+- JSON export of the `bbtPosttask` collection from MongoDB.
+#### Outputs
+- CSV file with following data: ATI, user experience, perception of time pressure
+
+## File: ```condition.py```
+#### Inputs
+- JSON export of the `bbtCondition` collection from MongoDB. 
+#### Outputs
+- CSV file with prolific ID and experimental condition
+
+## File: ```listReliance.py```
+#### Inputs
+- JSON export of the LogUI logs.
+- JSON export of the `bbtArguments` collection from MongoDB.
+#### Outputs
+- CSV file with the prolific ID and the the highest cosine similarity between a webpage and the submitted arguments.

@@ -34,7 +34,7 @@ def groupLogsPerSubmission(logs):
     return submissionsGrouped
 
 
-def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
+def calculateMetricsPerSubmission(submission, submissionLogs):
     """
     calculate search behavior metrics from the logs
     of one participant. SubmissionTime required for
@@ -50,9 +50,9 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
     - [avgRankVisitedResults] average rank of search results visited
     - [serpsVisited] number of SERPs visited
     - [dwellTimePerMinute] dwell time on SERPs per minute (H)
+    - [timeUsed] time used in secs
 
     :param submission: prolific ID of the participant
-    :param submissionTime: Time used to complete submission
     :param submissionLogs: the logs of one participant
     :return:
     """
@@ -61,16 +61,6 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
 
     print("***********************************************")
 
-    # Calculate query/serp metrics
-    queries, serps = processQueryserpLogs(queryserpLogs)
-    print(queries)
-    print(serps)
-    submissionMetrics['queriesIssued'] = len(queries)
-    submissionMetrics['queryRate'] = len(queries) / (submissionTime / 60)
-    submissionMetrics['avgQueryLengthWords'] = 0 if len(queries) == 0 else sum(len(query.split()) for query in queries) / len(queries)
-    submissionMetrics['avgQueryLengthChars'] = 0 if len(queries) == 0 else sum(len(query) for query in queries) / len(queries)
-    submissionMetrics['serpsVisited'] = len(serps)
-
     # Calulate result click metrics
     # Set the last two to 0 if no results were clicked
     ranks = extractResultRanksLogs(clickLogs)
@@ -78,14 +68,27 @@ def calculateMetricsPerSubmission(submission, submissionTime, submissionLogs):
     submissionMetrics['deepestRankVisitedResults'] = 0 if len(ranks) == 0 else max(ranks)
     submissionMetrics['avgRankVisitedResults'] = 0 if len(ranks) == 0 else sum(rank for rank in ranks) / len(ranks)
 
-    # Calculate dwell time
-    pagefocusIntervals = extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs)
-    submissionMetrics['dwellTimePerMinute'] = sum((endTime - startTime) for (startTime, endTime) in pagefocusIntervals) / 1000 / (submissionTime / 60)
+    # Calculate dwell time / time used
+    dwellTime, timeUsed = extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs)
+    submissionMetrics['dwellTimePerMinute'] = dwellTime
+    submissionMetrics['timeUsed'] = timeUsed
 
     # Collect all viewport size
     viewportSizes = extractViewportResizeEvents(resizingLogs)
     # Prepend initial size
     viewportSizes.insert(0, str(startLogs[0]['eventDetails']['viewportResolution']['width']) + "x" + str(startLogs[0]['eventDetails']['viewportResolution']['height']))
+
+    # Calculate query/serp metrics
+    queries, serps = processQueryserpLogs(queryserpLogs)
+    print(queries)
+    print(serps)
+    submissionMetrics['queriesIssued'] = len(queries)
+    submissionMetrics['queryRate'] = len(queries) / (timeUsed / 60)
+    submissionMetrics['avgQueryLengthWords'] = 0 if len(queries) == 0 else sum(
+        len(query.split()) for query in queries) / len(queries)
+    submissionMetrics['avgQueryLengthChars'] = 0 if len(queries) == 0 else sum(len(query) for query in queries) / len(
+        queries)
+    submissionMetrics['serpsVisited'] = len(serps)
 
     print(submissionMetrics)
     print(viewportSizes)
@@ -171,13 +174,14 @@ def extractResultRanksLogs(clickLogs):
     :return: the extracted ranks in a list
     """
     for log in clickLogs:
-        print("SERP: " + log['metadata'][2]['value'] + " | " + log['metadata'][1]['value'])
+        print("SERP: " + log['metadata'][4]['value'] + " | " + log['metadata'][3]['value'])
     return [int(log['metadata'][0]['value']) for log in clickLogs]
 
 
 def extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs):
     """
     Calculate the intervals in which the pagefocus was on the SERP.
+    Also calculate the time used.
 
     :param pagefocusLogs: logs of pagefocusEvent
     :param startLogs: logs of LogUI being started
@@ -207,7 +211,15 @@ def extractPagefocusIntervals(pagefocusLogs, startLogs, stopLogs):
     if lastFocus:
         focusIntervals.append((lastTimestamp, stopLogTime))
 
-    return focusIntervals
+    timeUsedSecs = (stopLogTime - startLogTime) / 1000
+    timeUsedMins = timeUsedSecs / 60
+    dwellTime = sum((endTime - startTime) for (startTime, endTime) in focusIntervals) / 1000 / timeUsedMins
+    if dwellTime == 0:
+        # If no page focus intervals were collected, the participants was on the SERP all the time.
+        # However, using the above dwell time calculation this would come down to 0. Therefore, we set it
+        # to the true value of 60 if 0 is calculated.
+        dwellTime = 60
+    return dwellTime, timeUsedSecs
 
 
 def extractViewportResizeEvents(resizingLogs):
@@ -227,10 +239,10 @@ def extractViewportResizeEvents(resizingLogs):
 
 def writeToCSV(out_file, submissionMetrics):
     file = open(out_file, "w")
-    file.write("prolificId,queriesIssued,queryRate,avgQueryLengthWords,avgQueryLengthChars,serpsVisited,noOfResultsClicked,deepestRankVisitedResults,avgRankVisitedResults,dwellTimePerMinute\n")
+    file.write("prolificId,queriesIssued,queryRate,avgQueryLengthWords,avgQueryLengthChars,serpsVisited,noOfResultsClicked,deepestRankVisitedResults,avgRankVisitedResults,dwellTimePerMinute,timeUsed\n")
     for s in submissionMetrics:
         file.write(s['prolificId'] + "," + str(s['queriesIssued']) + "," + str(s['queryRate']) + "," + str(s['avgQueryLengthWords']) + "," + str(s['avgQueryLengthChars']) + "," + str(s['serpsVisited']) + "," +
-                   str(s['noOfResultsClicked']) + "," + str(s['deepestRankVisitedResults']) + "," + str(s['avgRankVisitedResults']) + "," + str(s['dwellTimePerMinute']) + "\n")
+                   str(s['noOfResultsClicked']) + "," + str(s['deepestRankVisitedResults']) + "," + str(s['avgRankVisitedResults']) + "," + str(s['dwellTimePerMinute']) + "," + str(s['timeUsed']) + "\n")
     file.close()
 
 
@@ -247,13 +259,11 @@ def getSubmissionTimes(file):
 
 
 if __name__ == '__main__':
-    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-sa.log")
+    logs = importLogs("/home/mike/git/bbt-analysis/data/in/logs-list.log")
     logsPerSubmission = groupLogsPerSubmission(logs)
-    submissionTimes = getSubmissionTimes("/home/mike/git/bbt-analysis/data/out/submissionTimesAndNoOfArgs.csv")
     submissionMetrics = []
     for (submission, submissionLogs) in logsPerSubmission.items():
-        if submission in submissionTimes:
-            submissionMetrics.append(calculateMetricsPerSubmission(submission, submissionTimes[submission], submissionLogs))
-    writeToCSV("/home/mike/git/bbt-analysis/data/out/submissionMetrics.csv", submissionMetrics)
+        submissionMetrics.append(calculateMetricsPerSubmission(submission, submissionLogs))
+    writeToCSV("/home/mike/git/bbt-analysis/data/out/behavior-list.csv", submissionMetrics)
 
 

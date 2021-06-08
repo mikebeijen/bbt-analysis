@@ -19,7 +19,7 @@ def importArgs(file):
 def writeTimeStatsAndNoOfArgsToCSV(file, argsSubmissions):
     """
     Calculate time used to complete the submission and
-    write the time statistics to a CSV for data analysis
+    write the time constraint to a CSV for data analysis
 
     :param file: file to write time statics to
     :param argsSubmissions: The arguments grouped by
@@ -27,12 +27,12 @@ def writeTimeStatsAndNoOfArgsToCSV(file, argsSubmissions):
     :return: None
     """
     file = open(file, "w")
-    file.write("prolificId,timeUsed,timeConstraint,noOfArgsSubmitted\n")
+    file.write("prolificId,timeConstraint\n")
     for s in argsSubmissions:
         if s['timeConstraint'] - s['timeUsed'] < -5:
             # Print a warning if the arguments were submitted more than 5 seconds after the time was up as this could indicate a connection issue.
             print('Participant ' + str(s['_id']) + '\'s arguments submission was not made within 5 seconds after time was up.')
-        file.write(s['_id'] + "," + str(s['timeUsed']) + "," + str(s['timeConstraint']) + "," + str(len(s['args'])) + "\n")
+        file.write(s['_id'] + "," + str(s['timeConstraint']) + "\n")
 
     file.close()
 

@@ -42,9 +42,9 @@ def writeAvgRatingsToCSV(file, ratings):
     :return: None
     """
     file = open(file, "w")
-    file.write("prolificId,avgTDepth,avgDQual,avgDIntrp\n")
+    file.write("prolificId,avgTDepth,avgDQual,avgDIntrp,NoOfArgsSubmitted\n")
     for (prolificId, pRatings) in ratings.items():
-        file.write(str(prolificId) + "," + str(pRatings['TDepth']) + "," + str(avg(pRatings['DQual'])) + "," + str(avg(pRatings['DIntrp'])) + "\n")
+        file.write(str(prolificId) + "," + str(pRatings['TDepth']) + "," + str(avg(pRatings['DQual'])) + "," + str(avg(pRatings['DIntrp'])) + "," + str(len(pRatings['DIntrp'])) + "\n")
     file.close()
 
 

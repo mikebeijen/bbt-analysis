@@ -84,26 +84,39 @@ def importClicksFromLogs(logFiles):
 if __name__ == '__main__':
 
     # Log files to extract the search result clicks from
-    logFiles = ["/home/mike/git/bbt-analysis/data/in/logs-list.log"]
-                # "/home/mike/git/bbt-analysis/data/in/logs-grid.log"]
-                # "/home/mike/git/bbt-analysis/data/in/logs-ilsp.log",
-                # "/home/mike/git/bbt-analysis/data/in/logs-sa.log"]
+    logFiles = ["/home/mike/git/bbt-analysis/data/in/logs-list.log",
+                "/home/mike/git/bbt-analysis/data/in/logs-grid.log",
+                "/home/mike/git/bbt-analysis/data/in/logs-ilsp.log",
+                "/home/mike/git/bbt-analysis/data/in/logs-sa.log"]
     clicksPerParticipant = importClicksFromLogs(logFiles)
     argsPerParticipant = importArgs("/home/mike/git/bbt-analysis/data/in/args.json")
 
     # Open a file for wrtiting the cosine similarities to
     file = open("/home/mike/git/bbt-analysis/data/out/listReliance.csv", "w")
+    error_file = open("/home/mike/git/bbt-analysis/data/out/listReliance-errors.csv", "w")
     file.write("prolificID,maxSimilarity\n")
-    for (participant, urls) in clicksPerParticipant.items():
+    for i, (participant, urls) in enumerate(clicksPerParticipant.items()):
         if participant is not None:
-            highest = 0
+            highest = 0.0
             # Check the similarity between each url and submitted arguments
             for url in urls:
+                print("************" + str(i) + " Participant: " + participant + ", url: " + url + " ***********************")
                 try:
-                    cos_sim = cosine_similarity(calculateBoWVectors(argsPerParticipant[participant], getWebPageText(url)))[0][1]
+                    webPageText = getWebPageText(url)
+                    print(webPageText[0:250].replace('\n', "__"))
+                    cos_sim = cosine_similarity(calculateBoWVectors(argsPerParticipant[participant], webPageText))[0][1]
                     highest = highest if cos_sim < highest else cos_sim
-                except:
-                    print("[Web page inaccessible] Participant: " + participant + ", url: " + url + "")
-            file.write(participant + "," + str(cos_sim) + "\n")
-    file.close()
 
+                    if "If you're seeing this message, it means we're having trouble loading external resources on our website" in webPageText:
+                        print("[Added to error file]")
+                        error_file.write(participant + "," + url + "\n")
+                except:
+                    # Add participant and URL to a file if an error contains so cosine similarity can be calculated manually
+                    error_file.write(participant + "," + url + "\n")
+                    print("[Added to error file]")
+
+            file.write(participant + "," + str(cos_sim) + "\n")
+            file.flush()
+            error_file.flush()
+    file.close()
+    error_file.close()

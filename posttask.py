@@ -26,13 +26,16 @@ def processSubmission(posttaskSubmission):
     """
     posttaskMetrics = { 'prolificID': posttaskSubmission['_id'] }
 
-    # Calculate ATI score
-    posttaskMetrics['ati'] = sum([posttaskSubmission['ati' + str(i)] for i in range(1, 10)]) / 9
-
     # Reverse score of items using a reverse scale
     posttaskSubmission['pus1'] = reverseLikertScore(posttaskSubmission['pus1'])
     posttaskSubmission['pus2'] = reverseLikertScore(posttaskSubmission['pus2'])
     posttaskSubmission['pus3'] = reverseLikertScore(posttaskSubmission['pus3'])
+    posttaskSubmission['ati3'] = reverseLikertScore6(posttaskSubmission['ati3'])
+    posttaskSubmission['ati6'] = reverseLikertScore6(posttaskSubmission['ati6'])
+    posttaskSubmission['ati8'] = reverseLikertScore6(posttaskSubmission['ati8'])
+
+    # Calculate ATI score
+    posttaskMetrics['ati'] = sum([posttaskSubmission['ati' + str(i)] for i in range(1, 10)]) / 9
 
     # Calculate UES subscores and final scores
     posttaskMetrics['uesRws'] = sum([posttaskSubmission['rws' + str(i)] for i in range(1, 4)]) / 3
@@ -49,6 +52,7 @@ def processSubmission(posttaskSubmission):
         print("[WARNING] Participant " + posttaskSubmission['_id'] + " failed the attention check!")
 
     return posttaskMetrics
+
 
 def reverseLikertScore(score):
     """
@@ -67,6 +71,25 @@ def reverseLikertScore(score):
     if score == 5:
         return 1
 
+
+def reverseLikertScore6(score):
+    """
+    Function that returns a reversed score (6-point Likert scale)
+    :param score: unreversed score
+    :return: reversed score
+    """
+    if score == 1:
+        return 6
+    if score == 2:
+        return 5
+    if score == 3:
+        return 4
+    if score == 4:
+        return 3
+    if score == 5:
+        return 2
+    if score == 6:
+        return 1
 
 def writeToCSV(out_file, processedSubmissions):
     """

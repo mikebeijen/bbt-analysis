@@ -21,7 +21,8 @@ def processRatings(file):
                 if not regexRes.group(1) in ratingsPerSubmission:
                     ratingsPerSubmission[regexRes.group(1)] = {"DQual": [], "DIntrp": [], "TDepth-subtopic1": 0,
                                                                "TDepth-subtopic2": 0, "TDepth-subtopic3": 0, "TDepth-subtopic4": 0}
-                ratingsPerSubmission[regexRes.group(1)]['TDepth-subtopic' + regexRes.group(2)] += 1
+                if regexRes.group(2) != '0':
+                    ratingsPerSubmission[regexRes.group(1)]['TDepth-subtopic' + regexRes.group(2)] += 1
                 ratingsPerSubmission[regexRes.group(1)]['DQual'].append(int(regexRes.group(3)))
                 ratingsPerSubmission[regexRes.group(1)]['DIntrp'].append(int(regexRes.group(4)))
 
@@ -59,6 +60,6 @@ def avg(list):
 
 
 if __name__ == '__main__':
-    processedRatings = processRatings("/home/mike/git/bbt-analysis/data/in/testdata/argumentsRated.csv")
-    writeAvgRatingsToCSV("/home/mike/git/bbt-analysis/data/out/testdata/argumentsAvgRatings.csv", processedRatings)
+    processedRatings = processRatings("/home/mike/git/bbt-analysis/data/in/allArgsRated.csv")
+    writeAvgRatingsToCSV("/home/mike/git/bbt-analysis/data/out/argumentsAvgRatings.csv", processedRatings)
     print(processedRatings)
